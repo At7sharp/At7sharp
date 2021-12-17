@@ -1,0 +1,27 @@
+SELECT COUNT (DISTINCT user_id) 
+FROM ( 
+            SELECT 
+                user_id,
+                all_ids
+            FROM (  SELECT user_id -- Новые регистрации не product_id =1 за последнюю неделю
+                    FROM identification
+                    WHERE product_id != 1  AND  (today( ) - toDate(identification_date)) <= 7) AS l
+        JOIN ( SELECT user_id,
+                groupArray(pers_value) AS all_ids
+                FROM table_with_personal_data
+                WHERE pers_key_id IN (4, 5)
+                GROUP BY user_id) AS r
+        ON l.user_id = r.user_id) AS last_week_identifications
+JOIN
+    (SELECT all_ids
+        FROM (  SELECT user_id -- Все регистрации в продукте 1
+                FROM identification
+                WHERE product_id = 1) AS a
+        JOIN (  SELECT
+                    user_id,
+                    groupArray(pers_value) AS all_ids
+                FROM table_with_personal_data
+                WHERE pers_key_id IN (4, 5)
+                GROUP BY user_id) AS b
+        ON a.user_id = b.user_id) AS total_wallet_identifications
+ON last_week_identifications.all_ids = total_wallet_identifications.all_ids
